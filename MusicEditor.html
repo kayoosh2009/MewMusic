@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>MewMusic | Audio Tagger</title>
+    <script src="https://unpkg.com/browser-id3-writer@4.4.0/dist/browser-id3-writer.js"></script>
+    <style>
+        body { background: #0f172a; color: #f8fafc; font-family: sans-serif; display: flex; justify-content: center; padding: 40px; }
+        .card { background: #1e293b; padding: 25px; border-radius: 15px; width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        h2 { color: #38bdf8; margin-top: 0; text-align: center; }
+        label { display: block; margin: 10px 0 5px; font-size: 14px; color: #94a3b8; }
+        input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; }
+        button { width: 100%; margin-top: 20px; padding: 12px; border: none; border-radius: 8px; background: #38bdf8; color: #0f172a; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #7dd3fc; }
+        .preview-img { width: 100px; height: 100px; object-fit: cover; border-radius: 8px; margin: 10px auto; display: block; border: 2px dashed #334155; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>MewMusic Tagger 🐾</h2>
+
+    <label>1. Выбери MP3 файл</label>
+    <input type="file" id="audioFile" accept="audio/mp3">
+
+    <label>2. Обложка (Square JPG/PNG)</label>
+    <input type="file" id="coverFile" accept="image/*">
+    <img id="imgPreview" class="preview-img" src="#" alt="Preview" style="display:none;">
+
+    <label>Имя трека</label>
+    <input type="text" id="title" placeholder="Neon Dreamscape">
+
+    <label>Автор (Исполнитель)</label>
+    <input type="text" id="artist" placeholder="Arcade Waves">
+
+    <label>Альбом / ID</label>
+    <input type="text" id="album" placeholder="ID: +000456">
+
+    <button onclick="processFile()">Скачать готовый файл</button>
+</div>
+
+<script>
+    // Предпросмотр обложки
+    document.getElementById('coverFile').onchange = function (evt) {
+        const [file] = evt.target.files;
+        if (file) {
+            const preview = document.getElementById('imgPreview');
+            preview.src = URL.createObjectURL(file);
+            preview.style.display = 'block';
+        }
+    };
+
+    async function processFile() {
+        const audioInput = document.getElementById('audioFile').files[0];
+        const coverInput = document.getElementById('coverFile').files[0];
+        const title = document.getElementById('title').value;
+        const artist = document.getElementById('artist').value;
+        const album = document.getElementById('album').value;
+
+        if (!audioInput) return alert("Сначала выбери аудиофайл!");
+
+        const audioBuffer = await audioInput.arrayBuffer();
+        const writer = new ID3Writer(audioBuffer);
+
+        // Установка тегов
+        writer.setFrame('TIT2', title)
+              .setFrame('TPE1', [artist])
+              .setFrame('TALB', album);
+
+        // Добавление обложки, если она есть
+        if (coverInput) {
+            const coverBuffer = await coverInput.arrayBuffer();
+            writer.setFrame('APIC', {
+                type: 3,
+                data: coverBuffer,
+                description: 'Cover'
+            });
+        }
+
+        writer.addTag();
+        const taggedBlob = writer.getBlob();
+
+        // Скачивание
+        const url = URL.createObjectURL(taggedBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${artist} - ${title}.mp3`;
+        a.click();
+    }
+</script>
+
+</body>
+</html>
